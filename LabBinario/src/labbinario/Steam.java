@@ -2,9 +2,10 @@ package labbinario;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.FileWriter;
 import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -107,10 +108,135 @@ public class Steam {
         rplayer.writeInt(0);
         rplayer.writeUTF(path);
         rplayer.writeUTF(tipoUsuario);
-        //talvez un boolean? para borrar cuenta (pero es idea nomás)
     }
 
-    public boolean downloadGame(int gameCode, int clientCode, char sistemaOperativo) throws IOException {
+    private Game readGameAtCurrent() throws IOException {
+        int code = rgames.readInt();
+        String titulo = rgames.readUTF();
+        char so = rgames.readChar();
+        int edadMinima = rgames.readInt();
+        double precio = rgames.readDouble();
+        int contador = rgames.readInt();
+        String path = rgames.readUTF();
+        return new Game(code, titulo, so, edadMinima, precio, contador, path);
+    }
+
+    private Player readPlayerAtCurrent() throws IOException {
+        int code = rplayer.readInt();
+        String user = rplayer.readUTF();
+        String pass = rplayer.readUTF();
+        String nombre = rplayer.readUTF();
+        long nacimiento = rplayer.readLong();
+        int contador = rplayer.readInt();
+        String img = rplayer.readUTF();
+        String tipo = rplayer.readUTF();
+        return new Player(code, user, pass, nombre, nacimiento, contador, img, tipo);
+    }
+
+    private Game findGameByCode(int codeBuscado) throws IOException {
+        rgames.seek(0);
+        while (rgames.getFilePointer() < rgames.length()) {
+            Game g = readGameAtCurrent();
+            if (g.getCode() == codeBuscado) {
+                return g;
+            }
+        }
+        return null;
+    }
+
+    private Player findPlayerByCode(int codeBuscado) throws IOException {
+        rplayer.seek(0);
+        while (rplayer.getFilePointer() < rplayer.length()) {
+            Player p = readPlayerAtCurrent();
+            if (p.getCode() == codeBuscado) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    private int calcularEdad(long nacimientoMillis) {
+        Calendar nacimiento = Calendar.getInstance();
+        nacimiento.setTimeInMillis(nacimientoMillis);
+        Calendar hoy = Calendar.getInstance();
+        int edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR);
+        if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) {
+            edad--;
+        }
+        return edad;
+    }
+
+    private void incrementarDescargas(int gameCode, int clientCode) throws IOException {
+        rgames.seek(0);
+        while (rgames.getFilePointer() < rgames.length()) {
+            long inicio = rgames.getFilePointer();
+            Game g = readGameAtCurrent();
+            if (g.getCode() == gameCode) {
+                int nuevasDescargas = g.getContadorDownloads() + 1;
+                rgames.seek(inicio);
+                rgames.writeInt(g.getCode());
+                rgames.writeUTF(g.getTitulo());
+                rgames.writeChar(g.getSO());
+                rgames.writeInt(g.getEdadMinima());
+                rgames.writeDouble(g.getPrecio());
+                rgames.writeInt(nuevasDescargas);
+                rgames.writeUTF(g.getPath());
+                break;
+            }
+        }
+
+        rplayer.seek(0);
+        while (rplayer.getFilePointer() < rplayer.length()) {
+            long inicio = rplayer.getFilePointer();
+            Player p = readPlayerAtCurrent();
+            if (p.getCode() == clientCode) {
+                int nuevasDescargas = p.getContadorDownloads() + 1;
+                rplayer.seek(inicio);
+                rplayer.writeInt(p.getCode());
+                rplayer.writeUTF(p.getUserName());
+                rplayer.writeUTF(p.getPassword());
+                rplayer.writeUTF(p.getName());
+                rplayer.writeLong(p.getNacimiento());
+                rplayer.writeInt(nuevasDescargas);
+                rplayer.writeUTF(p.getImagen());
+                rplayer.writeUTF(p.getTipoUsuario());
+                break;
+            }
+        }
+    }
+
+    public boolean downloadGame(int gameCode, int clientCode, char sisO) throws IOException {
+        Game game = findGameByCode(gameCode);
+        Player player = findPlayerByCode(clientCode);
+
+        if (game == null || player == null) {
+            return false;
+        }
+
+        if (game.getSO() != sisO) {
+            return false;
+        }
+
+        int edad = calcularEdad(player.getNacimiento());
+        if (edad < game.getEdadMinima()) {
+            return false;
+        }
+
+        int downloadCode = getCode(3);
+        File f = new File("steam/downloads/download_" + downloadCode + ".stm");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date ahora = new Date();
+
+        try (FileWriter fw = new FileWriter(f)) {
+            fw.write(df.format(ahora) + "\n");
+            fw.write(game.getPath() + "\n");
+            fw.write("Descarga #" + downloadCode + "\n");
+            fw.write(player.getName() + " ha bajado " + game.getTitulo() + "\n");
+            fw.write("a un precio de $ " + game.getPrecio() + "." + "\n");
+        }
+
+        incrementarDescargas(gameCode, clientCode);
+        return true;
     }
 
 }
