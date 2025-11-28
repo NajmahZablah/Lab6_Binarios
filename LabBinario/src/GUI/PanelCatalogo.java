@@ -20,6 +20,7 @@ public class PanelCatalogo extends JPanel {
     private JTextField txtBuscar;
     private JComboBox<String> cmbFiltroSO;
     
+    
     public PanelCatalogo(SteamGUI frame) {
         this.frame = frame;
         setLayout(new BorderLayout(10, 10));
@@ -278,7 +279,7 @@ public class PanelCatalogo extends JPanel {
         btnConfirmar.addActionListener(e -> {
             String soSeleccionado = (String) cmbSO.getSelectedItem();
             char soChar = convertirSOChar(soSeleccionado);
-            int codigoCliente = frame.getCodigoUsuarioActual();
+           int codigoCliente = frame.getUsuarioActual().getCode();
             
             try {
                 boolean descargaExitosa = Steam.getInstance().downloadGame(

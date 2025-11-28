@@ -12,7 +12,6 @@ import java.awt.*;
  * @author najma
  */
 public class PanelNormal extends JPanel {
-    
     private SteamGUI frame;
     private JPanel panelContenido;
     private CardLayout contenidoLayout;
@@ -35,8 +34,8 @@ public class PanelNormal extends JPanel {
         panelContenido = new JPanel(contenidoLayout);
         
         panelCatalogo = new PanelCatalogo(frame);
-        panelMisDescargas = new PanelMisDescargas();
-        panelMiPerfil = new PanelMiPerfil();
+        panelMisDescargas = new PanelMisDescargas(frame);  // AGREGAR frame
+        panelMiPerfil = new PanelMiPerfil(frame);          // AGREGAR frame
         
         panelContenido.add(panelCatalogo, "CATALOGO");
         panelContenido.add(panelMisDescargas, "MIS_DESCARGAS");
