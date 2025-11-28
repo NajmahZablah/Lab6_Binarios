@@ -239,4 +239,14 @@ public class Steam {
         return true;
     }
 
+    public boolean updatePriceFor(int gameCode) throws IOException {
+        Game g = findGameByCode(gameCode);
+
+        if (g == null) {
+            return false;
+        } else {
+
+        }
+    }
+
 }
