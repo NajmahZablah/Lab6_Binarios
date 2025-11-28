@@ -28,7 +28,10 @@ public class Steam {
             throw new RuntimeException("Fallo inicializando archivos: " + e.getMessage());
         }
     }
-
+    
+    public static Steam getInstance() {
+        return INSTANCE;
+    }
     private void initCodes() throws IOException {
         if (rcods.length() == 0) {
             rcods.writeInt(1);
