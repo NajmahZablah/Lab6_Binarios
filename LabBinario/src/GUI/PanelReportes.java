@@ -11,14 +11,11 @@ import labbinario.Steam;
 
 public class PanelReportes extends JPanel {
 
-    private Steam steam;
     private JTextArea areaReporte;
     private JTextField txtCodigoCliente, txtNombreArchivo;
     private JButton btnGenerarReporte;
 
-    public PanelReportes(Steam steam) {
-        this.steam = steam;
-
+    public PanelReportes() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -101,11 +98,9 @@ public class PanelReportes extends JPanel {
         try {
             int codigo = Integer.parseInt(codigoStr);
 
-            // Genera archivo con Steam
-            steam.reportForClient(codigo, nombreArchivo);
+            Steam.getInstance().reportForClient(codigo, nombreArchivo);
 
-            // Muestra preview usando getDownloadsForPlayer
-            ArrayList<String[]> descargas = steam.getDownloadsForPlayer(codigo);
+            ArrayList<String[]> descargas = Steam.getInstance().getDownloadsForPlayer(codigo);
             areaReporte.setText("=== REPORTE DEL CLIENTE ===\n\n");
             areaReporte.append("Código: " + codigo + "\n");
             areaReporte.append("Total de descargas: " + descargas.size() + "\n\n");

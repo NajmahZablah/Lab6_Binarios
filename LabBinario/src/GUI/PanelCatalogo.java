@@ -106,7 +106,6 @@ public class PanelCatalogo extends JPanel {
             
             rgames.close();
             
-            // Si no hay juegos, mostrar mensaje
             if (panelJuegos.getComponentCount() == 0) {
                 JLabel lblVacio = new JLabel("No se encontraron juegos");
                 lblVacio.setForeground(Color.WHITE);
@@ -279,7 +278,7 @@ public class PanelCatalogo extends JPanel {
         btnConfirmar.addActionListener(e -> {
             String soSeleccionado = (String) cmbSO.getSelectedItem();
             char soChar = convertirSOChar(soSeleccionado);
-           int codigoCliente = frame.getUsuarioActual().getCode();
+            int codigoCliente = frame.getUsuarioActual().getCode();
             
             try {
                 boolean descargaExitosa = Steam.getInstance().downloadGame(

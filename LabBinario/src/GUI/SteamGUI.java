@@ -15,9 +15,11 @@ import java.util.Calendar;
  * @author najma
  */
 public class SteamGUI extends JFrame {
+    
     private CardLayout cardLayout;
     private JPanel mainPanel;
     private Usuario usuarioActual;
+    private int codigoUsuarioActual;
     
     // Paneles
     private PanelLogin panelLogin;
@@ -25,7 +27,7 @@ public class SteamGUI extends JFrame {
     private PanelNormal panelNormal;
     
     public SteamGUI() {
-        // Inicializar el sistema Steam y crear admin por defecto
+
         inicializarSistema();
         
         setTitle("Steam - Sistema de Gestión de VideoJuegos");
@@ -94,8 +96,17 @@ public class SteamGUI extends JFrame {
         return usuarioActual;
     }
     
+    public void setCodigoUsuarioActual(int codigo) {
+        this.codigoUsuarioActual = codigo;
+    }
+    
+    public int getCodigoUsuarioActual() {
+        return codigoUsuarioActual;
+    }
+    
     public void cerrarSesion() {
         usuarioActual = null;
+        codigoUsuarioActual = 0;
         mostrarPanel("LOGIN");
         panelLogin.limpiarCampos();
     }

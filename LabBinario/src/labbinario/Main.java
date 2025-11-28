@@ -5,9 +5,7 @@
 package labbinario;
 
 import GUI.SteamGUI;
-import java.io.IOException;
 import javax.swing.SwingUtilities;
-import javax.swing.JOptionPane;
 /**
  *
  * @author najma

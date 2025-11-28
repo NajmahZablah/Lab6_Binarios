@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class Steam {
     public static Steam getInstance() {
         return INSTANCE;
     }
+    
     private void initCodes() throws IOException {
         if (rcods.length() == 0) {
             rcods.writeInt(1);
@@ -270,12 +272,10 @@ public class Steam {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-    }
+        }
 
         return descargas;
     }
-
-
 
     public boolean updatePriceFor(int gameCode, double nuevoPrecio) throws IOException {
         rgames.seek(0);
@@ -303,28 +303,37 @@ public class Steam {
         try {
             Player p = findPlayerByCode(code);
             if (p == null) {
+                System.out.println("Player no encontrado");
                 return;
             }
 
-            File f = new File("steam/" + filename);
-            try (FileWriter fw = new FileWriter(f)) {
-                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+            File f = new File("steam/" + filename + ".txt");  // Agregado .txt
+            try (PrintWriter pw = new PrintWriter(new FileWriter(f))) {
+                SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
                 int edad = calcularEdad(p.getNacimiento());
 
-                fw.write("REPORTE DEL CLIENTE\n");
-                fw.write("====================\n");
-                fw.write("Código: " + p.getCode() + "\n");
-                fw.write("Nombre: " + p.getName() + "\n");
-                fw.write("Username: " + p.getUserName() + "\n");
-                fw.write("Tipo de usuario: " + p.getTipoUsuario() + "\n");
-                fw.write("Fecha de nacimiento: " + df.format(new Date(p.getNacimiento())) + "\n");
-                fw.write("Edad: " + edad + "\n");
-                fw.write("Total de descargas: " + p.getContadorDownloads() + "\n");
-                fw.write("Imagen: " + p.getImagen() + "\n");
+                pw.println("REPORTE DEL CLIENTE");
+                pw.println("====================");
+                pw.println("Código: " + p.getCode());
+                pw.println("Nombre: " + p.getName());
+                pw.println("Username: " + p.getUserName());
+                pw.println("Tipo de usuario: " + p.getTipoUsuario());
+                pw.println("Fecha de nacimiento: " + df.format(new Date(p.getNacimiento())));
+                pw.println("Edad: " + edad);
+                pw.println("Total de descargas: " + p.getContadorDownloads());
+                pw.println("Imagen: " + p.getImagen());
+                pw.println();
+                pw.println("JUEGOS DESCARGADOS:");
+                pw.println("-------------------");
+                
+                ArrayList<String[]> descargas = getDownloadsForPlayer(code);
+                for (String[] d : descargas) {
+                    pw.println("- " + d[0] + " ($" + d[1] + ") - " + d[2]);
+                }
             }
 
         } catch (IOException e) {
-            e.getMessage();
+            System.err.println("Error generando reporte: " + e.getMessage());
         }
     }
 
@@ -354,7 +363,8 @@ public class Steam {
         boolean eliminado = false;
 
         try (
-                RandomAccessFile origen = new RandomAccessFile(original, "r"); RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
+                RandomAccessFile origen = new RandomAccessFile(original, "r"); 
+                RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
             while (origen.getFilePointer() < origen.length()) {
                 long pos = origen.getFilePointer();
                 Player p = readPlayerAtCurrent(origen);
@@ -440,7 +450,8 @@ public class Steam {
         boolean eliminado = false;
 
         try (
-                RandomAccessFile origen = new RandomAccessFile(original, "r"); RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
+                RandomAccessFile origen = new RandomAccessFile(original, "r"); 
+                RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
             while (origen.getFilePointer() < origen.length()) {
                 long pos = origen.getFilePointer();
                 Game g = readGameAtCurrent(origen);
@@ -497,18 +508,17 @@ public class Steam {
         destino.writeUTF(imagen);
     }
 
-    // NUEVO
     public ArrayList<Game> getAllGames() throws IOException {
-    ArrayList<Game> juegos = new ArrayList<>();
-    rgames.seek(0);
-    
-    while (rgames.getFilePointer() < rgames.length()) {
-        Game g = readGameAtCurrent();
-        juegos.add(g);
+        ArrayList<Game> juegos = new ArrayList<>();
+        rgames.seek(0);
+        
+        while (rgames.getFilePointer() < rgames.length()) {
+            Game g = readGameAtCurrent();
+            juegos.add(g);
+        }
+        
+        return juegos;
     }
-    
-    return juegos;
-}
 
     public void printGames() throws IOException {
         System.out.println("\n========== JUEGOS REGISTRADOS ==========");

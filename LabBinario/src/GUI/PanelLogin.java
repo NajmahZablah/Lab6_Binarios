@@ -110,6 +110,47 @@ public class PanelLogin extends JPanel {
         gbc.insets = new Insets(20, 10, 10, 10);
         panel.add(btnLogin, gbc);
         
+        // NUEVO: Panel con mensaje de credenciales de admin
+        JPanel panelCredenciales = new JPanel();
+        panelCredenciales.setLayout(new BoxLayout(panelCredenciales, BoxLayout.Y_AXIS));
+        panelCredenciales.setBackground(new Color(47, 60, 76));
+        panelCredenciales.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
+        
+        // Línea separadora
+        JSeparator separador = new JSeparator();
+        separador.setForeground(new Color(102, 192, 244));
+        separador.setMaximumSize(new Dimension(250, 1));
+        panelCredenciales.add(separador);
+        
+        panelCredenciales.add(Box.createVerticalStrut(10));
+        
+        // Título del mensaje
+        JLabel lblTituloCredenciales = new JLabel("Usuario administrador por defecto:");
+        lblTituloCredenciales.setForeground(new Color(178, 212, 56));
+        lblTituloCredenciales.setFont(new Font("Arial", Font.BOLD, 11));
+        lblTituloCredenciales.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelCredenciales.add(lblTituloCredenciales);
+        
+        panelCredenciales.add(Box.createVerticalStrut(5));
+        
+        // Usuario
+        JLabel lblAdminUser = new JLabel("Usuario: admin");
+        lblAdminUser.setForeground(Color.LIGHT_GRAY);
+        lblAdminUser.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblAdminUser.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelCredenciales.add(lblAdminUser);
+        
+        // Contraseña
+        JLabel lblAdminPass = new JLabel("Contraseña: admin123");
+        lblAdminPass.setForeground(Color.LIGHT_GRAY);
+        lblAdminPass.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblAdminPass.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelCredenciales.add(lblAdminPass);
+        
+        gbc.gridy = 5;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(panelCredenciales, gbc);
+        
         btnLogin.addActionListener(e -> intentarLogin());
         txtPassword.addActionListener(e -> intentarLogin());
         
