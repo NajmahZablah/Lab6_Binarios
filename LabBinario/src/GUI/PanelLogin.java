@@ -6,6 +6,9 @@ package GUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import labbinario.Steam;
+import labbinario.Player;
 
 /**
  *
@@ -53,7 +56,7 @@ public class PanelLogin extends JPanel {
         JPanel panelForm = crearPanelFormulario();
         gbc.gridy = 3;
         gbc.gridwidth = 2;
-        add(panelForm, 2);
+        add(panelForm, gbc);
     }
     
     private JPanel crearPanelFormulario() {
@@ -122,24 +125,62 @@ public class PanelLogin extends JPanel {
             return;
         }
         
-        // VALIDACIÓN stema.validarLogin();
-        boolean esAdmin = username.equalsIgnoreCase("admin");
+        try {
+            Player playerEncontrado = validarCredenciales(username, password);
+            
+            if (playerEncontrado != null) {
+                Usuario usuario = new Usuario(
+                    playerEncontrado.getUserName(), 
+                    playerEncontrado.getTipoUsuario()
+                );
+                frame.setUsuarioActual(usuario);
+                frame.setCodigoUsuarioActual(playerEncontrado.getCode());
+                
+                if (playerEncontrado.getTipoUsuario().equals("admin")) {
+                    frame.mostrarPanel("ADMIN");
+                } else {
+                    frame.mostrarPanel("NORMAL");
+                }
+            } else {
+                mostrarError("Usuario o contraseña incorrectos");
+            }
+            
+        } catch (IOException ex) {
+            mostrarError("Error al validar credenciales: " + ex.getMessage());
+        }
+    }
+    
+    private Player validarCredenciales(String username, String password) throws IOException {
+        Steam steam = Steam.getInstance();
+        java.io.RandomAccessFile rplayer = new java.io.RandomAccessFile("steam/player.stm", "r");
         
-        Usuario usuario = new Usuario(username, esAdmin ? "admin" : "normal");
-        frame.setUsuarioActual(usuario);
-        
-        if (esAdmin) {
-            frame.mostrarPanel("ADMIN");
-        } else {
-            frame.mostrarPanel("NORMAL");
+        try {
+            while (rplayer.getFilePointer() < rplayer.length()) {
+                int code = rplayer.readInt();
+                String user = rplayer.readUTF();
+                String pass = rplayer.readUTF();
+                String nombre = rplayer.readUTF();
+                long nacimiento = rplayer.readLong();
+                int contador = rplayer.readInt();
+                String img = rplayer.readUTF();
+                String tipo = rplayer.readUTF();
+                
+                if (user.equals(username) && pass.equals(password)) {
+                    return new Player(code, user, pass, nombre, nacimiento, contador, img, tipo);
+                }
+            }
+        } finally {
+            rplayer.close();
         }
         
+        return null;
     }
     
     public void limpiarCampos() {
         txtUsuario.setText("");
         txtPassword.setText("");
     }
+    
     public void mostrarError(String mensaje) {
         JOptionPane.showMessageDialog(this, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
     }

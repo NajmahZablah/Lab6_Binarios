@@ -6,20 +6,24 @@ package GUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import labbinario.Steam;
 
 /**
  *
  * @author najma
  */
 public class PanelMiPerfil extends JPanel {
-    
+   
+    private SteamGUI frame;
     private JLabel lblImagenPerfil;
     private JTextField txtNombre, txtUsername;
     private JPasswordField txtPassword, txtConfirmarPassword;
     private JLabel lblDescargas;
     private String rutaImagenActual;
     
-    public PanelMiPerfil() {
+    public PanelMiPerfil(SteamGUI frame) {
+        this.frame = frame;
         setLayout(new BorderLayout(20, 20));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
@@ -116,11 +120,51 @@ public class PanelMiPerfil extends JPanel {
     }
     
     private void cargarDatosPerfil() {
-        // Cargar datos del usuario actual desde Steam
-        txtUsername.setText("user1");
-        txtNombre.setText("Juan Pérez");
-        lblDescargas.setText("5");
-        rutaImagenActual = null;
+        int codigoUsuario = frame.getCodigoUsuarioActual();
+        
+        try {
+            java.io.RandomAccessFile rplayer = new java.io.RandomAccessFile("steam/player.stm", "r");
+            
+            while (rplayer.getFilePointer() < rplayer.length()) {
+                int code = rplayer.readInt();
+                String user = rplayer.readUTF();
+                String pass = rplayer.readUTF();
+                String nombre = rplayer.readUTF();
+                long nacimiento = rplayer.readLong();
+                int contador = rplayer.readInt();
+                String img = rplayer.readUTF();
+                String tipo = rplayer.readUTF();
+                
+                if (code == codigoUsuario) {
+                    txtUsername.setText(user);
+                    txtNombre.setText(nombre);
+                    lblDescargas.setText(String.valueOf(contador));
+                    rutaImagenActual = img;
+                    
+                    // Intentar cargar la imagen
+                    try {
+                        ImageIcon icon = new ImageIcon(img);
+                        if (icon.getIconWidth() > 0) {
+                            Image image = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                            lblImagenPerfil.setIcon(new ImageIcon(image));
+                            lblImagenPerfil.setText("");
+                        }
+                    } catch (Exception e) {
+                        lblImagenPerfil.setText("(Sin Imagen)");
+                    }
+                    
+                    break;
+                }
+            }
+            
+            rplayer.close();
+            
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error al cargar datos del perfil: " + ex.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void cambiarImagen() {
@@ -130,11 +174,19 @@ public class PanelMiPerfil extends JPanel {
         
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             rutaImagenActual = fileChooser.getSelectedFile().getAbsolutePath();
-            // AQUÍ IRÍA: Cargar y mostrar la imagen
-            ImageIcon icon = new ImageIcon(rutaImagenActual);
-            Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
-            lblImagenPerfil.setIcon(new ImageIcon(img));
-            lblImagenPerfil.setText("");
+            
+            // Cargar y mostrar la imagen
+            try {
+                ImageIcon icon = new ImageIcon(rutaImagenActual);
+                Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                lblImagenPerfil.setIcon(new ImageIcon(img));
+                lblImagenPerfil.setText("");
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error al cargar la imagen", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -144,19 +196,86 @@ public class PanelMiPerfil extends JPanel {
         String confirmar = new String(txtConfirmarPassword.getPassword());
         
         if (nombre.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El nombre no puede estar vacío");
+            JOptionPane.showMessageDialog(this, 
+                "El nombre no puede estar vacío", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         if (!password.isEmpty() && !password.equals(confirmar)) {
-            JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden");
+            JOptionPane.showMessageDialog(this, 
+                "Las contraseñas no coinciden", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        // Steam.updatePlayer(...)
-        JOptionPane.showMessageDialog(this, "Perfil actualizado exitosamente");
+        int codigoUsuario = frame.getCodigoUsuarioActual();
+        String tipoUsuario = frame.getUsuarioActual().getTipoUsuario();
         
-        txtPassword.setText("");
-        txtConfirmarPassword.setText("");
+        // Si el password está vacío, mantener el actual
+        String passwordFinal = password.isEmpty() ? obtenerPasswordActual(codigoUsuario) : password;
+        
+        try {
+            boolean actualizado = Steam.getInstance().modificarPlayer(
+                codigoUsuario, 
+                passwordFinal, 
+                nombre, 
+                rutaImagenActual != null ? rutaImagenActual : "default.png", 
+                tipoUsuario
+            );
+            
+            if (actualizado) {
+                JOptionPane.showMessageDialog(this, 
+                    "Perfil actualizado exitosamente", 
+                    "Éxito", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                txtPassword.setText("");
+                txtConfirmarPassword.setText("");
+                cargarDatosPerfil();
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "No se pudo actualizar el perfil", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+            
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error al actualizar perfil: " + ex.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private String obtenerPasswordActual(int codigoUsuario) {
+        try {
+            java.io.RandomAccessFile rplayer = new java.io.RandomAccessFile("steam/player.stm", "r");
+            
+            while (rplayer.getFilePointer() < rplayer.length()) {
+                int code = rplayer.readInt();
+                String user = rplayer.readUTF();
+                String pass = rplayer.readUTF();
+                String nombre = rplayer.readUTF();
+                long nacimiento = rplayer.readLong();
+                int contador = rplayer.readInt();
+                String img = rplayer.readUTF();
+                String tipo = rplayer.readUTF();
+                
+                if (code == codigoUsuario) {
+                    rplayer.close();
+                    return pass;
+                }
+            }
+            
+            rplayer.close();
+            
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        
+        return "";
     }
 }

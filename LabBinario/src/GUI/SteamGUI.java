@@ -49,21 +49,15 @@ public class SteamGUI extends JFrame {
         mostrarPanel("LOGIN");
     }
     
-    /**
-     * Inicializa el sistema Steam y crea usuario admin por defecto si no existe
-     */
     private void inicializarSistema() {
         try {
-            // Inicializar Steam (crea directorios y archivos)
             Steam.getInstance();
             
-            // Verificar si existe el archivo de players y si está vacío
             File archivoPlayers = new File("steam/player.stm");
             
             if (!archivoPlayers.exists() || archivoPlayers.length() == 0) {
-                // Crear admin por defecto
                 Calendar cal = Calendar.getInstance();
-                cal.set(1990, 0, 1); // 1 de enero de 1990
+                cal.set(1990, 0, 1);
                 
                 Steam.getInstance().addPlayer(
                     "admin", 
