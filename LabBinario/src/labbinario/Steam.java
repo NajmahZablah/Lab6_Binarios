@@ -239,13 +239,54 @@ public class Steam {
         return true;
     }
 
-    public boolean updatePriceFor(int gameCode) throws IOException {
-        Game g = findGameByCode(gameCode);
+    public boolean updatePriceFor(int gameCode, double nuevoPrecio) throws IOException {
+        rgames.seek(0);
+        while (rgames.getFilePointer() < rgames.length()) {
+            rgames.getFilePointer();
+            int code = rgames.readInt();
+            rgames.readUTF();
+            rgames.readChar();
+            rgames.readInt();
 
-        if (g == null) {
-            return false;
-        } else {
+            if (code == gameCode) {
+                rgames.writeDouble(nuevoPrecio);
+                return true;
+            }
 
+            //se salta estos campos si el juego no es el mismo
+            rgames.readDouble();
+            rgames.readInt();
+            rgames.readUTF();
+        }
+        return false;
+    }
+
+    public void reportForClient(int code, String filename) {
+        try {
+            Player p = findPlayerByCode(code);
+            if (p == null) {
+                return;
+            }
+
+            File f = new File("steam/" + filename);
+            try (FileWriter fw = new FileWriter(f)) {
+                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                int edad = calcularEdad(p.getNacimiento());
+
+                fw.write("REPORTE DEL CLIENTE\n");
+                fw.write("====================\n");
+                fw.write("Código: " + p.getCode() + "\n");
+                fw.write("Nombre: " + p.getName() + "\n");
+                fw.write("Username: " + p.getUserName() + "\n");
+                fw.write("Tipo de usuario: " + p.getTipoUsuario() + "\n");
+                fw.write("Fecha de nacimiento: " + df.format(new Date(p.getNacimiento())) + "\n");
+                fw.write("Edad: " + edad + "\n");
+                fw.write("Total de descargas: " + p.getContadorDownloads() + "\n");
+                fw.write("Imagen: " + p.getImagen() + "\n");
+            }
+
+        } catch (IOException e) {
+            e.getMessage();
         }
     }
 
