@@ -1,6 +1,8 @@
 package labbinario;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.FileWriter;
 import java.io.RandomAccessFile;
@@ -212,18 +214,14 @@ public class Steam {
         Game game = findGameByCode(gameCode);
         Player player = findPlayerByCode(clientCode);
 
-        if (game == null || player == null) {
+        if (game == null || player == null) 
             return false;
-        }
-
-        if (game.getSO() != sisO) {
+        if (game.getSO() != sisO) 
             return false;
-        }
 
         int edad = calcularEdad(player.getNacimiento());
-        if (edad < game.getEdadMinima()) {
+        if (edad < game.getEdadMinima()) 
             return false;
-        }
 
         int downloadCode = getCode(3);
         File f = new File("steam/downloads/download_" + downloadCode + ".stm");
@@ -231,16 +229,53 @@ public class Steam {
         Date ahora = new Date();
 
         try (FileWriter fw = new FileWriter(f)) {
-            fw.write(df.format(ahora) + "\n");
-            fw.write(game.getPath() + "\n");
-            fw.write("Descarga #" + downloadCode + "\n");
-            fw.write(player.getName() + " ha bajado " + game.getTitulo() + "\n");
-            fw.write("a un precio de $ " + game.getPrecio() + "." + "\n");
+            fw.write(df.format(ahora) + "\n");   
+            fw.write(game.getPath() + "\n");           
+            fw.write("Download #" + downloadCode + "\n");  
+            fw.write(player.getName() + " ha bajado " + game.getTitulo() + "\n"); 
+            fw.write("a un precio de $ " + game.getPrecio() + "\n");             
+            fw.write(clientCode + "\n");                 
+            fw.write(sisO + "\n");                         
         }
 
         incrementarDescargas(gameCode, clientCode);
         return true;
     }
+    
+    public ArrayList<String[]> getDownloadsForPlayer(int playerCode) {
+        ArrayList<String[]> descargas = new ArrayList<>();
+        File dir = new File("steam/downloads");
+        if (!dir.exists() || !dir.isDirectory()) return descargas;
+
+        File[] files = dir.listFiles((d, name) -> name.startsWith("download_") && name.endsWith(".stm"));
+        if (files == null) return descargas;
+
+        for (File f : files) {
+            try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                String fecha = br.readLine();         
+                br.readLine();                         
+                br.readLine();                         
+                String lineaDesc = br.readLine();    
+                br.readLine();                         
+                int filePlayerCode = Integer.parseInt(br.readLine());
+                char so = br.readLine().charAt(0);   
+
+                if (filePlayerCode != playerCode) continue;
+
+                String juego = lineaDesc.split("ha bajado")[1].trim();
+
+                String precio = br.readLine().replace("a un precio de $", "").trim();
+
+                descargas.add(new String[]{juego, precio, fecha, String.valueOf(so)});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    }
+
+        return descargas;
+    }
+
+
 
     public boolean updatePriceFor(int gameCode, double nuevoPrecio) throws IOException {
         rgames.seek(0);
