@@ -497,4 +497,40 @@ public class Steam {
         destino.writeUTF(imagen);
     }
 
+    // NUEVO
+    public ArrayList<Game> getAllGames() throws IOException {
+    ArrayList<Game> juegos = new ArrayList<>();
+    rgames.seek(0);
+    
+    while (rgames.getFilePointer() < rgames.length()) {
+        Game g = readGameAtCurrent();
+        juegos.add(g);
+    }
+    
+    return juegos;
+}
+
+    public void printGames() throws IOException {
+        System.out.println("\n========== JUEGOS REGISTRADOS ==========");
+        rgames.seek(0);
+
+        if (rgames.length() == 0) {
+            System.out.println("No hay juegos registrados.");
+            return;
+        }
+
+        while (rgames.getFilePointer() < rgames.length()) {
+            Game g = readGameAtCurrent();
+            System.out.println("----------------------------------------");
+            System.out.println("Code: " + g.getCode());
+            System.out.println("Título: " + g.getTitulo());
+            System.out.println("Sistema Operativo: " + g.getSO());
+            System.out.println("Edad Mínima: " + g.getEdadMinima() + " años");
+            System.out.println("Precio: $" + String.format("%.2f", g.getPrecio()));
+            System.out.println("Descargas: " + g.getContadorDownloads());
+            System.out.println("Imagen: " + g.getPath());
+        }
+
+        System.out.println("========================================\n");
+    }
 }

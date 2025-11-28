@@ -6,6 +6,8 @@ package GUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import labbinario.Steam;
 
 /**
  *
@@ -70,21 +72,83 @@ public class PanelCatalogo extends JPanel {
     private void cargarJuegos() {
         panelJuegos.removeAll();
         
-        // Steam.printGames() con filtros
-        // Ejemplo
-        for (int i = 0; i < 9; i++) {
-            panelJuegos.add(crearTarjetaJuego(
-                i + 1,
-                "Juego " + (i + 1),
-                "Windows",
-                18,
-                29.99 + (i * 10),
-                "ruta/imagen.jpg"
-            ));
+        String busqueda = txtBuscar.getText().trim().toLowerCase();
+        String filtroSO = (String) cmbFiltroSO.getSelectedItem();
+        
+        try {
+            java.io.RandomAccessFile rgames = new java.io.RandomAccessFile("steam/games.stm", "r");
+            
+            while (rgames.getFilePointer() < rgames.length()) {
+                int code = rgames.readInt();
+                String titulo = rgames.readUTF();
+                char so = rgames.readChar();
+                int edadMinima = rgames.readInt();
+                double precio = rgames.readDouble();
+                int contador = rgames.readInt();
+                String path = rgames.readUTF();
+                
+                // Filtrar por búsqueda
+                if (!busqueda.isEmpty() && !titulo.toLowerCase().contains(busqueda)) {
+                    continue;
+                }
+                
+                // Filtrar por sistema operativo
+                String soNombre = convertirSO(so);
+                if (!filtroSO.equals("Todos") && !filtroSO.equals(soNombre)) {
+                    continue;
+                }
+                
+                panelJuegos.add(crearTarjetaJuego(
+                    code, titulo, soNombre, edadMinima, precio, path
+                ));
+            }
+            
+            rgames.close();
+            
+            // Si no hay juegos, mostrar mensaje
+            if (panelJuegos.getComponentCount() == 0) {
+                JLabel lblVacio = new JLabel("No se encontraron juegos");
+                lblVacio.setForeground(Color.WHITE);
+                lblVacio.setFont(new Font("Arial", Font.BOLD, 16));
+                lblVacio.setHorizontalAlignment(SwingConstants.CENTER);
+                panelJuegos.add(lblVacio);
+            }
+            
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error al cargar juegos: " + ex.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
         
         panelJuegos.revalidate();
         panelJuegos.repaint();
+    }
+    
+    private String convertirSO(char so) {
+        switch (so) {
+            case 'W':
+                return "Windows";
+            case 'M':
+                return "Mac";
+            case 'L':
+                return "Linux";
+            default:
+                return "Desconocido";
+        }
+    }
+    
+    private char convertirSOChar(String so) {
+        switch (so) {
+            case "Windows":
+                return 'W';
+            case "Mac":
+                return 'M';
+            case "Linux":
+                return 'L';
+            default:
+                return 'W';
+        }
     }
     
     private JPanel crearTarjetaJuego(int code, String titulo, String so, 
@@ -106,11 +170,20 @@ public class PanelCatalogo extends JPanel {
         lblImagen.setHorizontalAlignment(SwingConstants.CENTER);
         lblImagen.setVerticalAlignment(SwingConstants.CENTER);
         lblImagen.setForeground(Color.WHITE);
-        lblImagen.setText("(Imagen del Juego)");
         
-        // Cargar la imagen desde rutaImagen
-        // ImageIcon icon = new ImageIcon(rutaImagen);
-        // lblImagen.setIcon(icon);
+        // Intentar cargar la imagen
+        try {
+            ImageIcon icon = new ImageIcon(rutaImagen);
+            if (icon.getIconWidth() > 0) {
+                Image img = icon.getImage().getScaledInstance(280, 180, Image.SCALE_SMOOTH);
+                lblImagen.setIcon(new ImageIcon(img));
+                lblImagen.setText("");
+            } else {
+                lblImagen.setText("(Imagen del Juego)");
+            }
+        } catch (Exception e) {
+            lblImagen.setText("(Imagen del Juego)");
+        }
         
         tarjeta.add(lblImagen, BorderLayout.NORTH);
         
@@ -157,7 +230,7 @@ public class PanelCatalogo extends JPanel {
         btnDescargar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnDescargar.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        btnDescargar.addActionListener(e -> mostrarDialogoDescarga(code, titulo, so, edadMin));
+        btnDescargar.addActionListener(e -> mostrarDialogoDescarga(code, titulo, so, edadMin, precio));
         
         tarjeta.add(btnDescargar, BorderLayout.SOUTH);
         
@@ -165,7 +238,7 @@ public class PanelCatalogo extends JPanel {
     }
     
     private void mostrarDialogoDescarga(int codeJuego, String titulo, 
-                                       String soJuego, int edadMinima) {
+                                       String soJuego, int edadMinima, double precio) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                                     "Descargar: " + titulo, true);
         dialog.setSize(450, 300);
@@ -180,7 +253,7 @@ public class PanelCatalogo extends JPanel {
         
         JLabel lblInfo = new JLabel("<html><b>Confirmar Descarga</b><br><br>" +
                                     "Juego: " + titulo + "<br>" +
-                                    "Precio: $XX.XX<br>" +
+                                    "Precio: $" + String.format("%.2f", precio) + "<br>" +
                                     "Edad mínima: " + edadMinima + " años</html>");
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         panelCentral.add(lblInfo, gbc);
@@ -190,6 +263,7 @@ public class PanelCatalogo extends JPanel {
         panelCentral.add(new JLabel("Sistema Operativo:"), gbc);
         
         JComboBox<String> cmbSO = new JComboBox<>(new String[]{"Windows", "Mac", "Linux"});
+        cmbSO.setSelectedItem(soJuego);
         gbc.gridx = 1;
         panelCentral.add(cmbSO, gbc);
         
@@ -202,11 +276,37 @@ public class PanelCatalogo extends JPanel {
         btnConfirmar.setForeground(Color.WHITE);
         btnConfirmar.setFocusPainted(false);
         btnConfirmar.addActionListener(e -> {
-            // Steam.downloadGame(codeJuego, codeCliente, SO)
-            // Validar edad, SO, etc.
-            JOptionPane.showMessageDialog(dialog, 
-                "¡Descarga exitosa!\nRevisa 'Mis Descargas'");
-            dialog.dispose();
+            String soSeleccionado = (String) cmbSO.getSelectedItem();
+            char soChar = convertirSOChar(soSeleccionado);
+            int codigoCliente = frame.getCodigoUsuarioActual();
+            
+            try {
+                boolean descargaExitosa = Steam.getInstance().downloadGame(
+                    codeJuego, codigoCliente, soChar
+                );
+                
+                if (descargaExitosa) {
+                    JOptionPane.showMessageDialog(dialog, 
+                        "¡Descarga exitosa!\nRevisa 'Mis Descargas'",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, 
+                        "No se pudo realizar la descarga.\n" +
+                        "Verifica:\n" +
+                        "- Sistema operativo compatible\n" +
+                        "- Edad mínima requerida",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(dialog, 
+                    "Error al descargar: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         JButton btnCancelar = new JButton("Cancelar");
