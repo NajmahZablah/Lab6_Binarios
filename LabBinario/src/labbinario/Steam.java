@@ -290,4 +290,173 @@ public class Steam {
         }
     }
 
+    public boolean modificarPlayer(int codePlayer, String newPass, String newName, String newPhoto, String newTypeUser) throws IOException {
+        rplayer.seek(0);
+        while (rplayer.getFilePointer() < rplayer.length()) {
+            long inicio = rplayer.getFilePointer();
+            Player p = readPlayerAtCurrent();
+            if (p.getCode() == codePlayer) {
+                rplayer.seek(inicio);
+                rplayer.readInt();
+                rplayer.readUTF();
+                rplayer.writeUTF(newPass);
+                rplayer.writeUTF(newName);
+                rplayer.skipBytes(8 + 4);
+                rplayer.writeUTF(newPhoto);
+                rplayer.writeUTF(newTypeUser);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean deletePlayer(int code) throws IOException {
+        File original = new File("steam/player.stm");
+        File temporal = new File("steam/player_temp.stm");
+        boolean eliminado = false;
+
+        try (
+                RandomAccessFile origen = new RandomAccessFile(original, "r"); RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
+            while (origen.getFilePointer() < origen.length()) {
+                long pos = origen.getFilePointer();
+                Player p = readPlayerAtCurrent(origen);
+
+                if (p.getCode() != code) {
+                    origen.seek(pos);
+                    copiarRegistro(origen, destino);
+                } else {
+                    eliminado = true;
+                }
+            }
+        }
+
+        if (eliminado) {
+            if (original.delete()) {
+                temporal.renameTo(original);
+                rplayer = new RandomAccessFile("steam/player.stm", "rw");
+            } else {
+                throw new IOException("No se pudo eliminar el archivo original.");
+            }
+        } else {
+            temporal.delete();
+        }
+
+        return eliminado;
+    }
+
+    private Player readPlayerAtCurrent(RandomAccessFile raf) throws IOException {
+        int code = raf.readInt();
+        String user = raf.readUTF();
+        String pass = raf.readUTF();
+        String nombre = raf.readUTF();
+        long nacimiento = raf.readLong();
+        int contador = raf.readInt();
+        String img = raf.readUTF();
+        String tipo = raf.readUTF();
+        return new Player(code, user, pass, nombre, nacimiento, contador, img, tipo);
+    }
+
+    private void copiarRegistro(RandomAccessFile origen, RandomAccessFile destino) throws IOException {
+        int code = origen.readInt();
+        String user = origen.readUTF();
+        String pass = origen.readUTF();
+        String nombre = origen.readUTF();
+        long nacimiento = origen.readLong();
+        int contador = origen.readInt();
+        String img = origen.readUTF();
+        String tipo = origen.readUTF();
+
+        destino.writeInt(code);
+        destino.writeUTF(user);
+        destino.writeUTF(pass);
+        destino.writeUTF(nombre);
+        destino.writeLong(nacimiento);
+        destino.writeInt(contador);
+        destino.writeUTF(img);
+        destino.writeUTF(tipo);
+    }
+
+    public boolean modificarJuego(int codeGame, String newTitle, char newSO, int newEdad, String newImage) throws IOException {
+        rgames.seek(0);
+        while (rgames.getFilePointer() < rgames.length()) {
+            long inicio = rgames.getFilePointer();
+            Game g = readGameAtCurrent();
+            if (g.getCode() == codeGame) {
+                rgames.seek(inicio);
+                rgames.writeInt(g.getCode());
+                rgames.writeUTF(newTitle);
+                rgames.writeChar(newSO);
+                rgames.writeInt(newEdad);
+                rgames.writeDouble(g.getPrecio());
+                rgames.writeInt(g.getContadorDownloads());
+                rgames.writeUTF(newImage);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean deleteGame(int codeGame) throws IOException {
+        File original = new File("steam/games.stm");
+        File temporal = new File("steam/games_temp.stm");
+        boolean eliminado = false;
+
+        try (
+                RandomAccessFile origen = new RandomAccessFile(original, "r"); RandomAccessFile destino = new RandomAccessFile(temporal, "rw")) {
+            while (origen.getFilePointer() < origen.length()) {
+                long pos = origen.getFilePointer();
+                Game g = readGameAtCurrent(origen);
+
+                if (g.getCode() != codeGame) {
+                    origen.seek(pos);
+                    copiarRegistroJuego(origen, destino);
+                } else {
+                    eliminado = true;
+                }
+            }
+        }
+
+        if (eliminado) {
+            if (original.delete()) {
+                temporal.renameTo(original);
+                rgames = new RandomAccessFile("steam/games.stm", "rw");
+            } else {
+                throw new IOException("No se pudo eliminar el archivo original.");
+            }
+        } else {
+            temporal.delete();
+        }
+
+        return eliminado;
+    }
+
+    private Game readGameAtCurrent(RandomAccessFile raf) throws IOException {
+        int code = raf.readInt();
+        String titulo = raf.readUTF();
+        char so = raf.readChar();
+        int edadMinima = raf.readInt();
+        double precio = raf.readDouble();
+        int contador = raf.readInt();
+        String path = raf.readUTF();
+        return new Game(code, titulo, so, edadMinima, precio, contador, path);
+    }
+
+    private void copiarRegistroJuego(RandomAccessFile origen, RandomAccessFile destino) throws IOException {
+        int code = origen.readInt();
+        String titulo = origen.readUTF();
+        char so = origen.readChar();
+        int edad = origen.readInt();
+        double precio = origen.readDouble();
+        int contador = origen.readInt();
+        String imagen = origen.readUTF();
+
+        destino.writeInt(code);
+        destino.writeUTF(titulo);
+        destino.writeChar(so);
+        destino.writeInt(edad);
+        destino.writeDouble(precio);
+        destino.writeInt(contador);
+        destino.writeUTF(imagen);
+    }
+
 }
